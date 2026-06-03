@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro Arts | Exhibition</title>
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark-bg: #050505;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 1. CONTINUOUS BACKGROUND ANIMATION */
+        #heart-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+            pointer-events: none;
+        }
+
+        .heart {
+            position: absolute;
+            color: var(--gold);
+            filter: drop-shadow(0 0 5px var(--gold));
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(105vh) scale(0.3); opacity: 0; }
+            20% { opacity: 0.5; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-15vh) scale(1); opacity: 0; }
+        }
+
+        /* 2. LOGIN BOARD */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            transition: all 1s ease;
+        }
+
+        .login-box {
+            padding: 40px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            text-align: center;
+            width: 300px;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin: 15px 0;
+            padding: 12px;
+            background: #111;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        /* 3. GALLERY SECTION */
+        #main-content {
+            position: relative;
+            z-index: 10;
+            display: none; 
+            padding: 60px 5%;
+        }
+
+        .header-title {
+            font-size: 3rem;
+            color: var(--gold);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .img-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: 0.4s ease;
+        }
+
+        .img-card:hover {
+            transform: scale(1.02);
+            border-color: var(--gold);
+            box-shadow: 0 0 20px var(--gold);
+        }
+
+        .img-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .btn {
+            background: var(--gold);
+            color: black;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.4); }
+
+        /* MODAL / SLIDESHOW */
+        #modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #modal img { max-width: 90%; max-height: 85vh; border: 1px solid var(--gold); }
+        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 40px; cursor: pointer; color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <div id="heart-canvas"></div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="color: var(--gold);">Micro Arts Login</h2>
+            <input type="text" id="user" placeholder="Username">
+            <input type="password" id="pass" placeholder="Password">
+            <button class="btn" onclick="login()">Enter Gallery</button>
+            <p id="err" style="color: #ff4444; font-size: 13px; margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <h1 class="header-title">Micro Arts</h1>
+        <div style="text-align: center; margin-bottom: 40px;">
+            <button class="btn" onclick="openSlideshow(0)">▶ Start Slideshow</button>
+        </div>
+
+        <div class="gallery-grid" id="grid"></div>
+    </div>
+
+    <div id="modal">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <button class="btn" onclick="move(-1)" style="position: absolute; left: 20px;">Prev</button>
+        <img id="m-img" src="">
+        <button class="btn" onclick="move(1)" style="position: absolute; right: 20px;">Next</button>
+    </div>
+
+    <script>
+        // List your specific filenames here
+        const images = [
+            "20231202_192610.jpg",
+            "20231202_192623.jpg",
+            " 20231202_192658.jpg ",
+            "20231202_192715.jpg ",
+            "20240424_162926.jpg ",
+            "20240424_162928.jpg ",
+            "20240424_162930.jpg ",
+            "20240427_143510.jpg ",
+            "20240427_143513.jpg ",
+            "20240427_143534.jpg ",
+            "20240519_221953.jpg ",
+            "20240519_222012.jpg ",
+            "20240519_222014.jpg ",
+            "20240519_222015.jpg ",
+            "20240519_222019.jpg ",
+            "20240529_230731.jpg ",
+            "20240529_230750.jpg ",
+            "20240529_230806.jpg ",
+            "20240529_230818.jpg ",
+            "20240529_230848.jpg ",
+            "20240529_230850.jpg ",
+            "20240621_181651.jpg ",
+            "20240625_130952.jpg ",
+            "20240625_130958.jpg ",
+            "20240625_131022.jpg ",
+            "20240625_131043.jpg ",
+            "20240625_131750.jpg ",
+            "20240625_131759.jpg ",
+            "20240708_095357.jpg ",
+            "20240708_095405.jpg ",
+            "20240708_095423.jpg ",
+            "20240813_175720.jpg ",
+            "20240813_175732.jpg ",
+            "20240813_183205.jpg ",
+            "20240813_183245.jpg ",
+            "20240813_183324.jpg ",
+            "20240813_183536.jpg ",
+            "20240813_183607.jpg ",
+            "20240813_183646.jpg ",
+            "20240813_183717.jpg ",
+            "20240814_163710.jpg ",
+            "20240814_163726.jpg ",
+            "20240814_163924.jpg ",
+            "20240814_163935.jpg ",
+            "20240909_213532.jpg ",
+            "20240909_213545.jpg ",
+            "20240909_213548.jpg ",
+            "20240913_124958.jpg ",
+            "20240913_125007.jpg ",
+            "20240913_125020.jpg ",
+            "20240913_125024.jpg ",
+            "20241013_160634.jpg ",
+            "20241013_160650.jpg ",
+            "20241013_160701.jpg ",
+            "20250507_192613.jpg ",
+            "20250507_192654.jpg ",
+            "20250523_203700.jpg ",
+            "20250523_204316.jpg ",
+            "20250523_204329.jpg ",
+            "20250523_204429.jpg ",
+            "20250523_204438.jpg ",
+            "20250729_224619.jpg ",
+            "20250729_224631.jpg ",
+            "20250729_224633.jpg ",
+            "20250729_224641.jpg ",
+            "20250801_234436.jpg ",
+            "20250801_234450.jpg ",
+            "20250801_234511.jpg ",
+            "IMG20240406204431.jpg ",
+            "IMG20240408182329.jpg ",
+            "IMG20250109220841.jpg ",
+            "IMG20250109220850.jpg ",
+            "IMG20250109220858.jpg ",
+            "IMG20250808184820.jpg ",
+            "IMG20250808184826.jpg ",
+            "IMG20250808184837.jpg ",
+            "IMG20250808184844.jpg ",
+            "IMG20250808184857.jpg ",
+            "IMG20250808184901.jpg ",
+            "IMG20250808184905.jpg ",
+            "IMG20250808184911.jpg ",
+            "IMG20250808184945.jpg ",
+            "IMG20250808184957.jpg ",
+            "IMG20250808185005.jpg ",
+            "IMG20250808185306.jpg ",
+            "IMG20250808231434.jpg ",
+            "IMG20250809101951.jpg ",
+            "IMG20250809101953.jpg ",
+            "IMG20250809101956.jpg ",
+            "IMG20250809102015.jpg ",
+            "IMG20250809102017.jpg ",
+            "IMG-20240810-WA0001.jpg ",
+            "IMG-20240810-WA0001(1).jpg ",
+            "IMG-20240810-WA0002.jpg ",
+            "IMG-20250802-WA0072.jpg ",
+            "IMG-20250802-WA0073.jpg ",
+            "IMG-20250806-WA0009.jpg ",
+            "IMG-20250806-WA0013.jpg ",
+            "IMG-20250806-WA0014.jpg ",
+            "IMG_20231201_194018_243.jpg ",
+            "IMG_20231205_210644_363.jpg ",
+            "IMG_20231205_210644_475.jpg ",
+            "IMG_20231211_182200_069.jpg ",
+            "IMG_20231224_161452_648.jpg ",
+            "IMG_20240112_131016_580.jpg ",
+            "IMG_20240112_131016_683.jpg ",
+            "IMG_20240311_111655_220.webp",
+            "IMG_20240323_164725317_MF_PORTRAIT.jpg ",
+            "IMG_20240323_164732573.jpg ",
+            "IMG_20240323_164743616.jpg ",
+            "IMG_20240323_164948580_HDR.jpg ",
+            "IMG_20240323_165059848.jpg ",
+            "IMG_20240323_165311195_HDR.jpg ",
+            "IMG_20240323_165328329.jpg ",
+            "IMG_20240323_165331300.jpg ",
+            "IMG_20240323_165334245.jpg ",
+            "IMG_20240325_102631_898.jpg ",
+            "IMG_20240325_102631_970.jpg ",
+            "IMG_20240325_103708_494.jpg ",
+            "IMG_20240325_103708_587.jpg ",
+            "IMG_20240325_104909_326.jpg ",
+            "IMG_20240402_213820_707.jpg ",
+            "IMG_20240402_213820_812.jpg",
+            " IMG_20240402_214114_412.jpg ",
+            "IMG_20240402_214114_499.jpg ",
+            "IMG_20240402_205135303.jpg ",
+            "IMG_20240402_205210952.jpg ",
+            "IMG_20240402_205215623.jpg",
+            " IMG_20240402_205223847_MF_PORTRAIT.jpg",
+            " IMG_20240402_205242671_HDR.jpg ",
+            "IMG_20240402_205335447.jpg",
+            "IMG_20240402_205436473_HDR.jpg ",
+            "IMG_20240402_205804322.jpg ",
+            "IMG_20240402_205954123.jpg ",
+            "IMG_20240402_205956692.jpg ",
+            "IMG_20240402_210053186.jpg ",
+            "IMG_20240402_210114327.jpg ",
+            "IMG_20240402_210117896.jpg",
+            " IMG_20240402_210136315.jpg ",
+            "IMG_20240402_210138280_HDR.jpg ",
+            "IMG_20240408_231629_596.jpg ",
+            "IMG_20240408_231629_679.jpg ",
+            "IMG_20240524_184210_129.jpg ",
+            "IMG_20240629_202604_295.jpg ",
+            "IMG_20240629_203129_614.jpg ",
+            "IMG_20240629_203129_707.jpg ",
+            "IMG_20240629_203129_751.jpg ",
+            "IMG_20240719_211629_133.jpg ",
+            "IMG_20240719_211629_228.jpg ",
+            "IMG_20240731_223102.jpg ",
+            "IMG_20240731_223107.jpg ",
+            "IMG_20240731_223128.jpg ",
+            "IMG_20240813_104227_669.jpg ",
+            "IMG_20240813_104227_769.jpg ",
+            "IMG_20240813_104227_814.jpg ",
+            "IMG_20241001_111019_772.webp ",
+            "IMG_20241004_185339.jpg ",
+            "IMG_20241004_185402.jpg",
+            "IMG_20241004_185410.jpg ",
+            "IMG_20241004_185840.jpg ",
+            "IMG_20241004_185845.jpg ",
+            "IMG_20241004_185920.jpg ",
+            "IMG_20241004_192352.jpg ",
+            "IMG_20241004_192451.jpg ",
+            "IMG_20241004_192456.jpg ",
+            "IMG_20241004_192522.jpg ",
+            "IMG_20241004_192533.jpg ",
+            "IMG_20241004_192657.jpg ",
+            "IMG_20241004_192703.jpg ",
+            "IMG_20241004_192733.jpg ",
+            "IMG_20241004_192752.jpg ",
+            "IMG_20241004_192814.jpg ",
+            "IMG_20241004_192914.jpg ",
+            "IMG_20241004_192924.jpg ",
+            "IMG_20241004_192931.jpg ",
+            "IMG_20241004_192958.jpg ",
+            "IMG_20241004_193013.jpg ",
+            "IMG_20241004_193020.jpg ",
+            "IMG_20241004_193044.jpg ",
+            "IMG_20241004_193102.jpg ",
+            "IMG_20241004_193104.jpg ",
+            "IMG_20241004_193109.jpg ",
+            "IMG_20241004_193214.jpg ",
+            "IMG_20241004_193216.jpg ",
+            "IMG_20241004_193221.jpg ",
+            "IMG_20241004_193223.jpg ",
+            "IMG_20241004_193234.jpg ",
+            "IMG_20241004_193241.jpg ",
+            "IMG_20241221_184200.jpg ",
+            "IMG_20241221_184206.jpg ",
+            "IMG_20241221_184211.jpg ",
+            "IMG_20250722_093219_065.webp",
+            " -jrhbm9.jpg"
+        ];
+
+        // Heart Animation
+        const canvas = document.getElementById('heart-canvas');
+        function createHeart() {
+            const h = document.createElement('div');
+            h.className = 'heart';
+            h.innerHTML = '❤';
+            h.style.left = Math.random() * 100 + 'vw';
+            h.style.fontSize = (Math.random() * 15 + 10) + 'px';
+            h.style.animationDuration = (Math.random() * 5 + 6) + 's';
+            canvas.appendChild(h);
+            setTimeout(() => h.remove(), 11000);
+        }
+        setInterval(createHeart, 400);
+
+        // Updated Login Logic
+        function login() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            if(u === "micro" && p === "kanna1920") {
+                document.getElementById('login-overlay').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    renderGallery();
+                }, 1000);
+            } else {
+                document.getElementById('err').innerText = "Incorrect details.";
+            }
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('grid');
+            images.forEach((src, idx) => {
+                const card = document.createElement('div');
+                card.className = 'img-card';
+                card.innerHTML = `<img src="${src}" onclick="openSlideshow(${idx})">`;
+                grid.appendChild(card);
+            });
+        }
+
+        let current = 0;
+        function openSlideshow(idx) {
+            current = idx;
+            document.getElementById('m-img').src = images[current];
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function move(step) {
+            current = (current + step + images.length) % images.length;
+            document.getElementById('m-img').src = images[current];
+        }
+    </script>
+</body>
+</html>
